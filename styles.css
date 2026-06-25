@@ -80,7 +80,7 @@ h2, h3 { line-height: 1.35; }
 
 .scale {
   display: grid;
-  grid-template-columns: repeat(6, minmax(40px, 1fr));
+  grid-template-columns: repeat(7, minmax(40px, 1fr));
   gap: 8px;
   margin-top: 14px;
 }
@@ -141,7 +141,33 @@ input[type="text"] {
   border-radius: 14px;
   font: inherit;
 }
-#start-diagnosis { width: 100%; margin-top: 18px; }
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+.entry-card h3, .entry-card p { margin: 0; }
+.entry-card button { width: 100%; margin-top: auto; }
+select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+}
+.compatibility-box { display: grid; gap: 12px; }
 .result-nickname { color: var(--muted); font-weight: 700; }
 .result-actions { display: grid; gap: 10px; margin-top: 18px; }
 

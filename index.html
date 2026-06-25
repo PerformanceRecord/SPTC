@@ -3,37 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>配信雑談16タイプ分類チェックシート</title>
+  <title>雑談16タイプ診断</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="hero">
     <div class="container">
-      <p class="eyebrow">VTuber・配信者向け</p>
-      <h1>配信雑談16タイプ分類チェックシート</h1>
-      <p>ニックネームを入力して、20問の6段階評価で雑談の構造を判定します。</p>
+      <p class="eyebrow">VTuber・配信者 / リスナー向け</p>
+      <h1>雑談16タイプ診断</h1>
+      <p>4軸×20問の7段階評価で、雑談の作り方や好みを16タイプに整理します。</p>
     </div>
   </header>
 
   <main class="container">
     <section id="start-screen" class="intro card">
-      <h2>診断スタート</h2>
-      <p>ニックネームを入力してから診断を始めてください。</p>
+      <h2>診断を選ぶ</h2>
+      <p>配信者向け診断、またはリスナー向け診断を選んでください。</p>
       <label class="nickname-label" for="nickname">ニックネーム</label>
       <input id="nickname" name="nickname" type="text" maxlength="20" autocomplete="nickname" placeholder="例：さくら" required>
-      <div class="scale-help" aria-label="6段階評価の説明">
-        <span>1 そう思わない</span>
-        <span>3 ややそう思わない</span>
-        <span>4 ややそう思う</span>
-        <span>6 とてもそう思う</span>
+
+      <div class="entry-grid" aria-label="診断入口">
+        <article class="entry-card">
+          <h3>配信者向け診断</h3>
+          <p>雑談配信、または配信中の雑談がどのような構造で成立しているかを診断します。</p>
+          <button type="button" class="start-diagnosis" data-mode="broadcaster">配信者診断を始める</button>
+        </article>
+        <article class="entry-card">
+          <h3>リスナー向け診断</h3>
+          <p>自分がどのような雑談配信に居心地・視聴価値・参加感を感じやすいかを診断します。</p>
+          <button type="button" class="start-diagnosis" data-mode="listener">リスナー診断を始める</button>
+        </article>
       </div>
-      <button type="button" id="start-diagnosis">診断スタート</button>
     </section>
 
     <section id="diagnosis-screen" hidden>
       <section class="intro card">
+        <p class="eyebrow" id="mode-label"></p>
         <h2>設問</h2>
-        <p>各設問について、左の文にどれくらい「そう思う」かを6段階で選んでください。最後まで回答すると結果画面へ進みます。</p>
+        <p>各設問について、左右どちらに近いかを7段階で選んでください。4は中立です。</p>
+        <div class="scale-help" aria-label="7段階評価の説明">
+          <span>1 左に強く近い</span><span>2 左に近い</span><span>3 やや左</span><span>4 中立</span><span>5 やや右</span><span>6 右に近い</span><span>7 右に強く近い</span>
+        </div>
       </section>
 
       <form id="checksheet" novalidate></form>
@@ -50,7 +60,7 @@
 
   <footer class="footer">
     <div class="container">
-      <p>この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。</p>
+      <p>この分類は能力や優劣ではなく、雑談の構造や好みを整理するためのものです。</p>
     </div>
   </footer>
 

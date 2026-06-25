@@ -11,29 +11,40 @@
     <div class="container">
       <p class="eyebrow">VTuber・配信者向け</p>
       <h1>配信雑談16タイプ分類チェックシート</h1>
-      <p>20問の7段階評価で、雑談の構造を4軸から判定します。</p>
+      <p>ニックネームを入力して、20問の6段階評価で雑談の構造を判定します。</p>
     </div>
   </header>
 
   <main class="container">
-    <section class="intro card">
-      <h2>使い方</h2>
-      <p>各設問で、左の文に近いほど1、右の文に近いほど7を選んでください。未回答がある場合、結果は表示されません。</p>
-      <div class="scale-help" aria-label="7段階評価の説明">
-        <span>1 かなり左</span>
-        <span>4 中立</span>
-        <span>7 かなり右</span>
+    <section id="start-screen" class="intro card">
+      <h2>診断スタート</h2>
+      <p>ニックネームを入力してから診断を始めてください。</p>
+      <label class="nickname-label" for="nickname">ニックネーム</label>
+      <input id="nickname" name="nickname" type="text" maxlength="20" autocomplete="nickname" placeholder="例：さくら" required>
+      <div class="scale-help" aria-label="6段階評価の説明">
+        <span>1 そう思わない</span>
+        <span>3 ややそう思わない</span>
+        <span>4 ややそう思う</span>
+        <span>6 とてもそう思う</span>
       </div>
+      <button type="button" id="start-diagnosis">診断スタート</button>
     </section>
 
-    <form id="checksheet" novalidate></form>
+    <section id="diagnosis-screen" hidden>
+      <section class="intro card">
+        <h2>設問</h2>
+        <p>各設問について、左の文にどれくらい「そう思う」かを6段階で選んでください。最後まで回答すると結果画面へ進みます。</p>
+      </section>
 
-    <section class="actions card">
-      <button type="button" id="show-result">結果を表示</button>
-      <button type="button" id="reset-answers" class="secondary">回答をリセット</button>
-      <p id="validation-message" class="message" role="status" aria-live="polite"></p>
+      <form id="checksheet" novalidate></form>
+
+      <section class="actions card">
+        <button type="button" id="show-result">結果を表示</button>
+        <button type="button" id="reset-answers" class="secondary">回答をリセット</button>
+      </section>
     </section>
 
+    <p id="validation-message" class="message" role="status" aria-live="polite"></p>
     <section id="result" class="result card" hidden aria-live="polite"></section>
   </main>
 

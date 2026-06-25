@@ -116,6 +116,7 @@ h2, h3 { line-height: 1.35; }
 }
 
 button, .tweet-button {
+  min-height: 48px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -158,6 +159,9 @@ input[type="text"] {
 }
 .entry-card h3, .entry-card p { margin: 0; }
 .entry-card button { width: 100%; margin-top: auto; }
+.entry-card:focus-within, .entry-card:hover {
+  border-color: var(--accent);
+}
 select {
   width: 100%;
   min-height: 48px;

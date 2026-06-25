@@ -74,8 +74,8 @@ const listenerTypeDescriptions = {
 };
 
 const modes = {
-  broadcaster: { label: '配信者向け診断', axes: withQuestions(broadcasterAxes, broadcasterQuestions), types: broadcasterTypeDescriptions, notice: 'この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。同じ配信内でも時間帯や話題によってタイプは変化します。' },
-  listener: { label: 'リスナー向け診断', axes: withQuestions(listenerAxes, listenerQuestions), types: listenerTypeDescriptions, notice: 'この診断はリスナーの優劣を示すものではなく、どのような雑談に視聴価値や居心地を感じやすいかを整理するものです。実際の好みは配信者本人への関心や、その日の気分によっても変わります。' }
+  broadcaster: { label: 'あなたは配信者として回答中', shortLabel: '配信者', axes: withQuestions(broadcasterAxes, broadcasterQuestions), types: broadcasterTypeDescriptions, notice: 'この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。同じ配信内でも時間帯や話題によってタイプは変化します。' },
+  listener: { label: 'あなたはリスナーとして回答中', shortLabel: 'リスナー', axes: withQuestions(listenerAxes, listenerQuestions), types: listenerTypeDescriptions, notice: 'この診断はリスナーの優劣を示すものではなく、どのような雑談に視聴価値や居心地を感じやすいかを整理するものです。実際の好みは配信者本人への関心や、その日の気分によっても変わります。' }
 };
 
 const startScreen = document.querySelector('#start-screen');
@@ -200,7 +200,7 @@ function resetAnswers() {
 }
 function startDiagnosis(mode) {
   if (!getNickname()) { messageEl.textContent = 'ニックネームを入力してください。'; nicknameInput.focus(); return; }
-  currentMode = mode; modeLabel.textContent = modes[currentMode].label; renderQuestions(); messageEl.textContent = ''; startScreen.hidden = true; diagnosisScreen.hidden = false; resultEl.hidden = true; diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  currentMode = mode; modeLabel.textContent = modes[currentMode].label; renderQuestions(); messageEl.textContent = `${modes[currentMode].shortLabel}向けの設問に切り替えました。`; startScreen.hidden = true; diagnosisScreen.hidden = false; resultEl.hidden = true; diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 document.querySelectorAll('.start-diagnosis').forEach(button => button.addEventListener('click', () => startDiagnosis(button.dataset.mode)));

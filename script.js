@@ -1,4 +1,19 @@
 const SCORE_MAP = { 1: 3, 2: 2, 3: 1, 4: 0, 5: -1, 6: -2, 7: -3 };
+const AGREEMENT_SCORE_MAP = { 1: -3, 2: -2, 3: -1, 4: 1, 5: 2, 6: 3 };
+const AXIS_DIRECTIONS = {
+  origin: { positive: 'S', negative: 'R' },
+  publicity: { positive: 'P', negative: 'L' },
+  theme: { positive: 'T', negative: 'F' },
+  body: { positive: 'C', negative: 'U' }
+};
+const AGREEMENT_LABELS = {
+  1: 'まったくそう思わない',
+  2: 'そう思わない',
+  3: 'あまりそう思わない',
+  4: 'ややそう思う',
+  5: 'そう思う',
+  6: 'とてもそう思う'
+};
 const RESULT_ENDPOINT = ''; // Google Apps ScriptのWebアプリURLを入れてください。
 const SYMBOLS = [['S', 'R'], ['P', 'L'], ['T', 'F'], ['C', 'U']];
 const COMPATIBILITY_WEIGHTS = [25, 25, 20, 30];
@@ -11,10 +26,30 @@ const broadcasterAxes = [
 ];
 
 const broadcasterQuestions = [
-  [['この雑談では、配信者が先に話題を提示し、リスナーがそれに反応している。', 'リスナーのコメントや質問が起点となって、話題が広がっている。'], ['話題の方向性は、配信者がある程度コントロールしている。', '話題の方向性は、コメント欄の流れによって変わりやすい。'], ['コメントは、配信者の話への相槌・共感・ツッコミとして機能している。', 'コメントそのものが次の話題を生み出している。'], ['配信者が話したいことを持って配信している印象が強い。', 'リスナーの反応を見ながら話す内容を決めている印象が強い。'], ['コメントが少なくても、配信者の語りだけで一定時間成立する。', 'コメントが少ないと、話題の展開が止まりやすい。']],
-  [['話題は、初見でも前提知識なしに理解しやすい。', '話題を理解するには、配信者やコミュニティの文脈を知っている必要がある。'], ['天気、季節、食べ物、流行、生活あるあるなど、広く共有できる話題が多い。', '配信者個人、仕事、家族、ペット、過去配信、常連ネタなど固有の話題が多い。'], ['初見でも自分の経験をコメントしやすい。', '常連や継続視聴者ほどコメントしやすい。'], ['話題の魅力は、一般的な共感しやすさにある。', '話題の魅力は、配信者本人やコミュニティ固有の濃さにある。'], ['誰が話してもある程度成立しそうな話題である。', 'その配信者だからこそ意味が出る話題である。']],
-  [['この雑談には、最初から話すテーマやお題がある。', 'この雑談は、その場の流れで話題が決まっている。'], ['配信タイトルや冒頭説明から、何について話す配信か分かりやすい。', '配信タイトルや冒頭説明だけでは、何を話すか分かりにくい。'], ['話題が脱線しても、元のテーマに戻る力がある。', '話題が脱線すると、そのまま別の話題へ流れていく。'], ['アーカイブで見たとき、どの部分が何の話か整理しやすい。', 'アーカイブで見たとき、話題の区切りが分かりにくい。'], ['トークの中心になる話題が明確に存在する。', 'トークの中心は定まらず、話題の移動そのものを楽しむ。']],
-  [['この雑談は、雑談そのものを楽しませることが主目的である。', 'この雑談は、高評価、登録、初見コメント、待機、進行維持など別目的のために使われている。'], ['視聴者は、このトークを聞くために配信へ来ている。', '視聴者は、耐久、歌、ゲーム、企画、告知など別の本編を目当てに来ている。'], ['雑談部分だけを切り出しても、コンテンツとして成立しやすい。', '雑談部分だけを切り出すと、場つなぎや進行補助に見えやすい。'], ['アーカイブ視聴でも、この雑談には価値が残りやすい。', 'この雑談の価値は、リアルタイムの場や達成目標に強く依存している。'], ['交流そのものが目的になっている。', '交流は、初見獲得・登録促進・コメント増加・耐久達成のための手段になっている。']]
+  { id: 'bq-01', text: '雑談では、自分から話題を提供するようにしている。', group: 'S/R：起点性', scoring: [{ axis: 'origin', direction: 1, weight: 1.0 }] },
+  { id: 'bq-02', text: 'コメントが少なくても、自分の語りだけで雑談を続けられる。', group: 'S/R：起点性', scoring: [{ axis: 'origin', direction: 1, weight: 1.0 }] },
+  { id: 'bq-03', text: '盛り上がる話題は、リスナー発信で始まることが多い。', group: 'S/R：起点性', scoring: [{ axis: 'origin', direction: -1, weight: 1.0 }] },
+  { id: 'bq-04', text: 'コメント欄の反応が薄いと、話しづらくなることがある。', group: 'S/R：起点性', scoring: [{ axis: 'origin', direction: -1, weight: 1.0 }] },
+  { id: 'bq-05', text: '初見さんでも入ってこられる話題を選ぶように心がけている。', group: 'P/L：公共性', scoring: [{ axis: 'publicity', direction: 1, weight: 1.0 }] },
+  { id: 'bq-06', text: '天気、食べ物、季節、流行など、広く共有できる話題をよく扱う。', group: 'P/L：公共性', scoring: [{ axis: 'publicity', direction: 1, weight: 1.0 }] },
+  { id: 'bq-07', text: '内輪ネタに走り過ぎたと反省することがある。', group: 'P/L：公共性', scoring: [{ axis: 'publicity', direction: -1, weight: 1.0 }] },
+  { id: 'bq-08', text: '一般的なトークより、リスナーとの掛け合いやチャンネル内のノリを扱っている時間が長い。', group: 'P/L：公共性', scoring: [{ axis: 'publicity', direction: -1, weight: 1.0 }] },
+  { id: 'bq-09', text: '配信前に、話す内容をある程度決めている。', group: 'T/F：テーマ性', scoring: [{ axis: 'theme', direction: 1, weight: 1.0 }] },
+  { id: 'bq-10', text: '話題が脱線しても、最終的には元のテーマに戻せる自信がある。', group: 'T/F：テーマ性', scoring: [{ axis: 'theme', direction: 1, weight: 1.0 }] },
+  { id: 'bq-11', text: '何を話すかは、その場のノリで決めがちである。', group: 'T/F：テーマ性', scoring: [{ axis: 'theme', direction: -1, weight: 1.0 }] },
+  { id: 'bq-12', text: '話題が脱線したら、そのまま面白い方向へ流すことが多い。', group: 'T/F：テーマ性', scoring: [{ axis: 'theme', direction: -1, weight: 1.0 }] },
+  { id: 'bq-13', text: '雑談だけで、配信として成立させたい。', group: 'C/U：本体性', scoring: [{ axis: 'body', direction: 1, weight: 1.0 }] },
+  { id: 'bq-14', text: 'アーカイブで見返しても楽しめる雑談を意識している。', group: 'C/U：本体性', scoring: [{ axis: 'body', direction: 1, weight: 1.0 }] },
+  { id: 'bq-15', text: '雑談には、企画、耐久、歌、ゲームなど別の目的を組み合わせたい。', group: 'C/U：本体性', scoring: [{ axis: 'body', direction: -1, weight: 1.0 }] },
+  { id: 'bq-16', text: 'その場にいるリスナーが参加して楽しめることを優先している。', group: 'C/U：本体性', scoring: [{ axis: 'body', direction: -1, weight: 1.0 }] },
+  { id: 'bq-17', text: 'テーマを決めて、掘り下げるようなトークテーマ型の雑談が好きだ。', group: '複合設問', scoring: [{ axis: 'origin', direction: 1, weight: 0.75 }, { axis: 'theme', direction: 1, weight: 0.75 }] },
+  { id: 'bq-18', text: 'コメントから始まった話題でも、ちゃんと結論やオチをつけてから次へ進みたい。', group: '複合設問', scoring: [{ axis: 'origin', direction: -1, weight: 0.75 }, { axis: 'theme', direction: 1, weight: 0.75 }] },
+  { id: 'bq-19', text: '話題に困ったら、自分の近況やチャンネル内で通じる話をしがちである。', group: '複合設問', scoring: [{ axis: 'origin', direction: 1, weight: 0.75 }, { axis: 'publicity', direction: -1, weight: 0.75 }] },
+  { id: 'bq-20', text: '初見コメントを見かけて、初見さんでも入ってこられるように話題を修正することがある。', group: '複合設問', scoring: [{ axis: 'origin', direction: -1, weight: 0.75 }, { axis: 'publicity', direction: 1, weight: 0.75 }] },
+  { id: 'bq-21', text: '天気や時事ネタなど、広く共有できる話題だけで1枠喋れる自信がある。', group: '複合設問', scoring: [{ axis: 'publicity', direction: 1, weight: 0.75 }, { axis: 'body', direction: 1, weight: 0.75 }] },
+  { id: 'bq-22', text: '自分のチャンネルの魅力は、リスナーとの掛け合いにあると思う。', group: '複合設問', scoring: [{ axis: 'publicity', direction: -1, weight: 0.75 }, { axis: 'body', direction: -1, weight: 0.75 }] },
+  { id: 'bq-23', text: '全然予想していない流れでも、上手く乗りこなして面白い雑談にできる自信がある。', group: '複合設問', scoring: [{ axis: 'theme', direction: -1, weight: 0.75 }, { axis: 'body', direction: 1, weight: 0.75 }] },
+  { id: 'bq-24', text: 'その場のノリやコメントの流れに助けられて、配信が成立したと感じることがある。', group: '複合設問', scoring: [{ axis: 'theme', direction: -1, weight: 0.75 }, { axis: 'body', direction: -1, weight: 0.75 }] }
 ];
 
 const listenerAxes = [
@@ -74,7 +109,7 @@ const listenerTypeDescriptions = {
 };
 
 const modes = {
-  broadcaster: { label: 'あなたは配信者として回答中', shortLabel: '配信者', axes: withQuestions(broadcasterAxes, broadcasterQuestions), types: broadcasterTypeDescriptions, notice: 'この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。同じ配信内でも時間帯や話題によってタイプは変化します。' },
+  broadcaster: { label: 'あなたは配信者として回答中', shortLabel: '配信者', axes: broadcasterAxes, types: broadcasterTypeDescriptions, notice: 'この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。同じ配信内でも時間帯や話題によってタイプは変化します。' },
   listener: { label: 'あなたはリスナーとして回答中', shortLabel: 'リスナー', axes: withQuestions(listenerAxes, listenerQuestions), types: listenerTypeDescriptions, notice: 'この診断はリスナーの優劣を示すものではなく、どのような雑談に視聴価値や居心地を感じやすいかを整理するものです。実際の好みは配信者本人への関心や、その日の気分によっても変わります。' }
 };
 
@@ -85,6 +120,8 @@ const form = document.querySelector('#checksheet');
 const resultEl = document.querySelector('#result');
 const messageEl = document.querySelector('#validation-message');
 const modeLabel = document.querySelector('#mode-label');
+const diagnosisDescription = document.querySelector('#diagnosis-description');
+const scaleHelp = document.querySelector('#scale-help');
 let currentMode = '';
 let latestListenerCode = '';
 
@@ -93,39 +130,74 @@ function escapeHtml(value) {
 }
 function getNickname() { return nicknameInput.value.trim(); }
 function getAxes() { return currentMode ? modes[currentMode].axes : []; }
-function formatSigned(score) { return `${score >= 0 ? '+' : ''}${score}`; }
+function formatScore(score) { return Number.isInteger(score) ? String(score) : score.toFixed(2).replace(/0+$/, '').replace(/\.$/, ''); }
+function formatSigned(score) { return `${score >= 0 ? '+' : ''}${formatScore(score)}`; }
+function isBroadcasterMode() { return currentMode === 'broadcaster'; }
 
 function renderQuestions() {
-  form.innerHTML = getAxes().map(axis => `
+  form.innerHTML = isBroadcasterMode() ? renderBroadcasterQuestions() : getAxes().map(axis => `
     <section class="card axis" aria-labelledby="${axis.id}-title">
       <div class="axis-header"><div><h2 id="${axis.id}-title">${axis.title}</h2><p>${axis.leftName} / ${axis.rightName}</p></div><p>${axis.note}</p></div>
       ${axis.questions.map((question, index) => renderQuestion(axis, question, index)).join('')}
     </section>`).join('');
+}
+function renderBroadcasterQuestions() {
+  return `<section class="card axis" aria-labelledby="broadcaster-questions-title">
+    <div class="axis-header"><div><h2 id="broadcaster-questions-title">配信者向け設問</h2><p>6段階回答</p></div><p>単文設問</p></div>
+    ${broadcasterQuestions.map(renderBroadcasterQuestion).join('')}
+  </section>`;
+}
+function renderBroadcasterQuestion(question, index) {
+  return `<div class="question"><p class="question-title">${index + 1}. ${question.text}</p><p class="question-group">${question.group}</p><div class="scale agreement-scale" role="radiogroup" aria-label="${index + 1}問目">${Object.entries(AGREEMENT_LABELS).map(([value, label]) => `<label><input type="radio" name="${question.id}" value="${value}"><span>${value}</span><small>${label}</small></label>`).join('')}</div></div>`;
 }
 function renderQuestion(axis, question, index) {
   const name = `${axis.id}-${index}`;
   return `<div class="question"><p class="question-title">${index + 1}. どちらに近いですか？</p><div class="pair"><span>${question[0]}</span><span>↔</span><span>${question[1]}</span></div><div class="scale" role="radiogroup" aria-label="${axis.title} ${index + 1}問目">${[1,2,3,4,5,6,7].map(value => `<label><input type="radio" name="${name}" value="${value}"><span>${value}</span></label>`).join('')}</div></div>`;
 }
 function getAnswers() {
+  if (isBroadcasterMode()) return broadcasterQuestions.map(question => form.querySelector(`input[name="${question.id}"]:checked`)?.value ?? null);
   return getAxes().flatMap(axis => axis.questions.map((_, index) => form.querySelector(`input[name="${axis.id}-${index}"]:checked`)?.value ?? null));
 }
 function calculateAxisScores() {
+  if (isBroadcasterMode()) return calculateBroadcasterAxisScores();
   return getAxes().map(axis => {
     const score = axis.questions.reduce((sum, _, index) => sum + SCORE_MAP[form.querySelector(`input[name="${axis.id}-${index}"]:checked`).value], 0);
-    return { axis, score, symbol: score >= 0 ? axis.left : axis.right };
+    return { axis, score, maxScore: axis.questions.length * 3, symbol: score >= 0 ? axis.left : axis.right };
   });
 }
-function scoreLabel(score, left, right) {
-  if (score >= 6) return `${left}強め`;
-  if (score >= 1) return `${left}やや強め`;
-  if (score === 0) return `中間傾向（タイプコード上は${left}を採用）`;
-  if (score >= -5) return `${right}やや強め`;
+function calculateBroadcasterAxisScores(answers = getBroadcasterAnswersFromForm()) {
+  const scoresByAxis = Object.fromEntries(broadcasterAxes.map(axis => [axis.id, { axis, score: 0, maxScore: 0 }]));
+  broadcasterQuestions.forEach(question => {
+    const answer = answers[question.id];
+    if (!answer) return;
+    const answerScore = AGREEMENT_SCORE_MAP[answer];
+    question.scoring.forEach(({ axis, direction, weight }) => {
+      scoresByAxis[axis].score += answerScore * direction * weight;
+      scoresByAxis[axis].maxScore += 3 * weight;
+    });
+  });
+  return broadcasterAxes.map(axis => {
+    const item = scoresByAxis[axis.id];
+    const direction = AXIS_DIRECTIONS[axis.id];
+    return { ...item, symbol: item.score >= 0 ? direction.positive : direction.negative };
+  });
+}
+function getBroadcasterAnswersFromForm() {
+  return Object.fromEntries(broadcasterQuestions.map(question => [question.id, form.querySelector(`input[name="${question.id}"]:checked`)?.value ?? null]));
+}
+function scoreLabel(score, left, right, maxScore = 15) {
+  const ratio = maxScore ? score / maxScore : 0;
+  if (ratio >= 0.55) return `${left}強め`;
+  if (ratio >= 0.15) return `${left}やや強め`;
+  if (ratio > -0.15) return `中間傾向（タイプコード上は${left}を採用）`;
+  if (ratio > -0.55) return `${right}やや強め`;
   return `${right}強め`;
 }
-function confidenceText(total) {
-  if (total <= 15) return '低い。中間的な傾向です。';
-  if (total <= 30) return '中程度。一部の軸に傾向があります。';
-  if (total <= 45) return '高い。かなり明確な型です。';
+function confidenceText(total, maxTotal = 60) {
+  const ratio = maxTotal ? total / maxTotal : 0;
+  if (ratio <= 0.25) return '低い。中間的な傾向です。';
+  if (ratio <= 0.5) return '中程度。一部の軸に傾向があります。';
+  if (ratio <= 0.75) return '高い。かなり明確な型です。';
   return '非常に高い。タイプ傾向が強く出ています。';
 }
 function typeDistance(a, b) { return [...a].filter((char, index) => char !== b[index]).length; }
@@ -142,8 +214,9 @@ function countViewingTendency(code) {
 }
 function buildResultText(nickname, scores, code, typeName, typeDescription, confidence, tendency) {
   const modeName = modes[currentMode].shortLabel;
-  const scoreLines = scores.map(({ axis, score }) => `${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right)}`);
-  return [`${nickname}さんの診断結果`, `診断モード：${modeName}`, `${code}型：${typeName}`, typeDescription, '', `アーカイブ向き：${tendency.archiveCount} / 4`, `リアタイ向き：${tendency.realtimeCount} / 4`, viewingTendencyText(tendency.archiveCount, tendency.realtimeCount), '', ...scoreLines, '', `信頼度：${confidence} / 60（${confidenceText(confidence)}）`].join('\n');
+  const maxConfidence = scores.reduce((sum, item) => sum + item.maxScore, 0);
+  const scoreLines = scores.map(({ axis, score, maxScore }) => `${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right, maxScore)}`);
+  return [`${nickname}さんの診断結果`, `診断モード：${modeName}`, `${code}型：${typeName}`, typeDescription, '', `アーカイブ向き：${tendency.archiveCount} / 4`, `リアタイ向き：${tendency.realtimeCount} / 4`, viewingTendencyText(tendency.archiveCount, tendency.realtimeCount), '', ...scoreLines, '', `信頼度：${formatScore(confidence)} / ${formatScore(maxConfidence)}（${confidenceText(confidence, maxConfidence)}）`].join('\n');
 }
 function buildResultPayload(nickname, scores, code, typeName, confidence) {
   const tendency = countViewingTendency(code);
@@ -207,7 +280,8 @@ function showResult() {
   startScreen.hidden = true;
   diagnosisScreen.hidden = true;
   resultEl.hidden = false;
-  resultEl.innerHTML = `<h2>判定結果</h2><p class="result-nickname">${escapeHtml(nickname)}さんの結果</p><div class="type-code">${code}型</div><h3>${typeName}</h3><p>${typeDescription}</p><h3>視聴傾向</h3><p>アーカイブ向き：${tendency.archiveCount} / 4<br>リアタイ向き：${tendency.realtimeCount} / 4</p><p>${viewingTendencyText(tendency.archiveCount, tendency.realtimeCount)}</p><h3>各軸スコア</h3><div class="score-grid">${scores.map(({ axis, score }) => `<div class="pill">${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right)}</div>`).join('')}</div><h3>各軸の短評</h3><ul>${scores.map(({ axis, score }) => `<li>${score === 0 ? axis.comments.neutral : score > 0 ? axis.comments.left : axis.comments.right}</li>`).join('')}</ul>${currentMode === 'listener' ? `<h3>向いている配信タイプ</h3><p><strong>${code}型</strong>、${relatedTypes(code, 1).join('型、')}型</p><h3>苦手になりやすい配信タイプ</h3><p>${[...relatedTypes(code, 3), ...relatedTypes(code, 4)].join('型、')}型</p>${renderCompatibilityTool()}` : ''}<h3>信頼度</h3><p><strong>${confidence} / 60</strong>：${confidenceText(confidence)}</p><p class="notice">${modes[currentMode].notice}</p><div class="result-actions"><button type="button" id="copy-result">結果をコピー</button><button type="button" id="restart-diagnosis" class="secondary">回答をリセット</button></div>`;
+  const maxConfidence = scores.reduce((sum, item) => sum + item.maxScore, 0);
+  resultEl.innerHTML = `<h2>判定結果</h2><p class="result-nickname">${escapeHtml(nickname)}さんの結果</p><div class="type-code">${code}型</div><h3>${typeName}</h3><p>${typeDescription}</p><h3>視聴傾向</h3><p>アーカイブ向き：${tendency.archiveCount} / 4<br>リアタイ向き：${tendency.realtimeCount} / 4</p><p>${viewingTendencyText(tendency.archiveCount, tendency.realtimeCount)}</p><h3>各軸スコア</h3><div class="score-grid">${scores.map(({ axis, score, maxScore }) => `<div class="pill">${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right, maxScore)}</div>`).join('')}</div><h3>各軸の短評</h3><ul>${scores.map(({ axis, score }) => `<li>${score === 0 ? axis.comments.neutral : score > 0 ? axis.comments.left : axis.comments.right}</li>`).join('')}</ul>${currentMode === 'listener' ? `<h3>向いている配信タイプ</h3><p><strong>${code}型</strong>、${relatedTypes(code, 1).join('型、')}型</p><h3>苦手になりやすい配信タイプ</h3><p>${[...relatedTypes(code, 3), ...relatedTypes(code, 4)].join('型、')}型</p>${renderCompatibilityTool()}` : ''}<h3>信頼度</h3><p><strong>${formatScore(confidence)} / ${formatScore(maxConfidence)}</strong>：${confidenceText(confidence, maxConfidence)}</p><p class="notice">${modes[currentMode].notice}</p><div class="result-actions"><button type="button" id="copy-result">結果をコピー</button><button type="button" id="restart-diagnosis" class="secondary">回答をリセット</button></div>`;
   document.querySelector('#copy-result').addEventListener('click', async () => { await navigator.clipboard.writeText(resultText); messageEl.textContent = '結果をコピーしました。'; });
   document.querySelector('#restart-diagnosis').addEventListener('click', resetAnswers);
   document.querySelector('#check-compatibility')?.addEventListener('click', updateCompatibility);
@@ -220,7 +294,16 @@ function resetAnswers() {
 function startDiagnosis(mode) {
   if (!getNickname()) { messageEl.textContent = 'ニックネームを入力してください。'; nicknameInput.focus(); return; }
   if (!modes[mode]) { messageEl.textContent = '配信者 / リスナーを選択してください。'; return; }
-  currentMode = mode; modeLabel.textContent = modes[currentMode].label; renderQuestions(); messageEl.textContent = `${modes[currentMode].shortLabel}向けの設問に切り替えました。`; startScreen.hidden = true; diagnosisScreen.hidden = false; resultEl.hidden = true; diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  currentMode = mode;
+  modeLabel.textContent = modes[currentMode].label;
+  if (isBroadcasterMode()) {
+    diagnosisDescription.textContent = '各設問について、どの程度そう思うかを6段階で選んでください。';
+    scaleHelp.innerHTML = Object.entries(AGREEMENT_LABELS).map(([value, label]) => `<span>${value}：${label}</span>`).join('');
+  } else {
+    diagnosisDescription.textContent = '各設問について、左右どちらに近いかを7段階で選んでください。4は中立です。';
+    scaleHelp.innerHTML = '<span>1 左に強く近い</span><span>2 左に近い</span><span>3 やや左</span><span>4 中立</span><span>5 やや右</span><span>6 右に近い</span><span>7 右に強く近い</span>';
+  }
+  renderQuestions(); messageEl.textContent = `${modes[currentMode].shortLabel}向けの設問に切り替えました。`; startScreen.hidden = true; diagnosisScreen.hidden = false; resultEl.hidden = true; diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 document.querySelectorAll('.start-diagnosis').forEach(button => button.addEventListener('click', () => startDiagnosis(button.dataset.mode)));
@@ -228,4 +311,28 @@ nicknameInput.addEventListener('keydown', event => { if (event.key === 'Enter') 
 document.querySelector('#show-result').addEventListener('click', showResult);
 document.querySelector('#reset-answers').addEventListener('click', resetAnswers);
 
-window.diagnosisTestApi = { SCORE_MAP, modes, countViewingTendency, buildResultPayload, setCurrentMode: mode => { currentMode = mode; }, calculateTypeFromScores: scores => scores.map((score, index) => score >= 0 ? SYMBOLS[index][0] : SYMBOLS[index][1]).join(''), scoreLabel, compatibility, compatibilityDetail };
+function buildBroadcasterTestAnswers(value) {
+  return Object.fromEntries(broadcasterQuestions.map(question => [question.id, String(value)]));
+}
+function calculateTypeFromScoreItems(scores) {
+  return scores.map(item => item.symbol).join('');
+}
+
+window.diagnosisTestApi = {
+  SCORE_MAP,
+  AGREEMENT_SCORE_MAP,
+  AXIS_DIRECTIONS,
+  broadcasterQuestions,
+  broadcasterQuestionCount: () => broadcasterQuestions.length,
+  modes,
+  countViewingTendency,
+  buildResultPayload,
+  setCurrentMode: mode => { currentMode = mode; },
+  buildBroadcasterTestAnswers,
+  calculateBroadcasterAxisScores,
+  calculateBroadcasterType: answers => calculateTypeFromScoreItems(calculateBroadcasterAxisScores(answers)),
+  calculateTypeFromScores: scores => scores.map((score, index) => score >= 0 ? SYMBOLS[index][0] : SYMBOLS[index][1]).join(''),
+  scoreLabel,
+  compatibility,
+  compatibilityDetail
+};

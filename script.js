@@ -1,4 +1,5 @@
 const SCORE_MAP = { 1: 3, 2: 2, 3: 1, 4: 0, 5: -1, 6: -2, 7: -3 };
+const RESULT_ENDPOINT = ''; // Google Apps ScriptのWebアプリURLを入れてください。
 
 const axes = [
   {
@@ -160,6 +161,44 @@ function buildResultText(scores, code, typeName, typeDescription, archiveCount, 
   return [`${code}型：${typeName}`, typeDescription, '', ...scoreLines, '', `アーカイブ向き：${archiveCount} / 4`, `リアタイ向き：${realtimeCount} / 4`, `信頼度：${confidence} / 60（${confidenceText(confidence)}）`].join('\n');
 }
 
+
+function buildResultPayload(scores, code, typeName, archiveCount, realtimeCount, confidence) {
+  const payload = {
+    submittedAt: new Date().toISOString(),
+    code,
+    typeName,
+    archiveCount,
+    realtimeCount,
+    confidence
+  };
+
+  scores.forEach(({ axis, score }) => {
+    payload[`${axis.id}Score`] = score;
+    payload[`${axis.id}Symbol`] = score >= 0 ? axis.left : axis.right;
+  });
+
+  return payload;
+}
+
+async function sendResultToSheet(payload) {
+  if (!RESULT_ENDPOINT) {
+    messageEl.textContent = '結果を表示しました。スプレッドシート送信先は未設定です。';
+    return;
+  }
+
+  try {
+    await fetch(RESULT_ENDPOINT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    messageEl.textContent = '結果を表示し、スプレッドシートへ送信しました。';
+  } catch (error) {
+    messageEl.textContent = '結果は表示しましたが、スプレッドシート送信に失敗しました。';
+  }
+}
+
 function showResult() {
   const answers = getAnswers();
   const unanswered = answers.filter(answer => answer === null).length;
@@ -176,6 +215,8 @@ function showResult() {
   const realtimeCount = 4 - archiveCount;
   const confidence = scores.reduce((sum, item) => sum + Math.abs(item.score), 0);
   const resultText = buildResultText(scores, code, typeName, typeDescription, archiveCount, realtimeCount, confidence);
+
+  const resultPayload = buildResultPayload(scores, code, typeName, archiveCount, realtimeCount, confidence);
 
   messageEl.textContent = '';
   resultEl.hidden = false;
@@ -202,6 +243,7 @@ function showResult() {
     await navigator.clipboard.writeText(resultText);
     messageEl.textContent = '結果をコピーしました。';
   });
+  sendResultToSheet(resultPayload);
   resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 

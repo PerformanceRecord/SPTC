@@ -7,12 +7,12 @@ const AXIS_DIRECTIONS = {
   body: { positive: 'C', negative: 'U' }
 };
 const AGREEMENT_LABELS = {
-  1: 'まったくそう思わない',
-  2: 'そう思わない',
-  3: 'あまりそう思わない',
-  4: 'ややそう思う',
-  5: 'そう思う',
-  6: 'とてもそう思う'
+  1: 'いいえ',
+  2: 'どちらかといえば、いいえ',
+  3: 'やや、いいえ',
+  4: 'やや、はい',
+  5: 'どちらかといえば、はい',
+  6: 'はい'
 };
 const RESULT_ENDPOINT = ''; // Google Apps ScriptのWebアプリURLを入れてください。
 const SYMBOLS = [['S', 'R'], ['P', 'L'], ['T', 'F'], ['C', 'U']];
@@ -60,15 +60,32 @@ const listenerAxes = [
 ];
 
 const listenerQuestions = [
-  [['配信者が自分から話し始める雑談を聞くのが好きだ。', 'コメントや質問から話が広がる雑談が好きだ。'], ['コメントをしなくても、配信者の語りだけで満足できる。', '自分や他のリスナーのコメントが拾われる方が楽しい。'], ['雑談では、配信者の考えや体験談を聞きたい。', '雑談では、コメント欄とのやり取りを見たい。'], ['ラジオのように聞ける雑談が好きだ。', '会話に参加している感覚がある雑談が好きだ。'], ['コメント欄が静かでも、配信者が話していれば楽しめる。', 'コメント欄が動いていないと、雑談として少し物足りない。']],
-  [['初見でも分かる話題が多い雑談の方が入りやすい。', 'その配信者を知っている人向けの話題の方が楽しい。'], ['天気、食べ物、季節、流行などの話が好きだ。', '配信者の生活、仕事、ペット、過去配信の話が好きだ。'], ['自分の経験をコメントしやすい話題があると参加しやすい。', 'その配信者固有の話を深く聞ける方が満足度が高い。'], ['誰でも入れる空気の雑談が好きだ。', '常連だからこそ分かる空気の雑談が好きだ。'], ['話題の分かりやすさを重視する。', '話題の濃さや親密さを重視する。']],
-  [['何について話す配信か分かる雑談の方が見やすい。', '何を話すか分からない雑談の方が楽しい。'], ['テーマやお題がある雑談が好きだ。', 'その場の流れで話題が変わる雑談が好きだ。'], ['アーカイブで見返しやすい雑談が好きだ。', 'リアルタイムで流れに乗る雑談が好きだ。'], ['話題が整理されている方が安心して聞ける。', '話題が脱線していく方がライブ感があって好きだ。'], ['「今日はこの話」と決まっている方が見に行きやすい。', '「何も決めてない」雑談の方が気軽に見られる。']],
-  [['雑談そのものを聞くために配信を見ることが多い。', '雑談を通じて配信を盛り上げたり応援したりするのが好きだ。'], ['アーカイブでも楽しめる雑談に価値を感じる。', 'リアルタイムで参加してこそ価値がある雑談に惹かれる。'], ['配信者の話がコンテンツとして面白いかを重視する。', 'コメント、初見対応、高評価、登録などで場が動くことを重視する。'], ['雑談だけで1本の配信として成立している方が好きだ。', '歌枠、ゲーム、耐久、企画の中で発生する雑談の方が参加しやすい。'], ['「聞いてよかった」と思える話を求める。', '「参加して支えられた」と思える場を求める。']]
+  { id: 'lq-01', text: '配信者の話が聞きたくて雑談を見に行っている。', group: 'S/R：起点嗜好', scoring: [{ axis: 'origin', direction: 1, weight: 1.0 }] },
+  { id: 'lq-02', text: 'ROM専だ。', group: 'S/R：起点嗜好', scoring: [{ axis: 'origin', direction: 1, weight: 1.0 }] },
+  { id: 'lq-03', text: 'ガンガンチャットしておしゃべりしたい。', group: 'S/R：起点嗜好', scoring: [{ axis: 'origin', direction: -1, weight: 1.0 }] },
+  { id: 'lq-04', text: 'コメント欄の反応によって、配信の流れが変わる方が楽しい。', group: 'S/R：起点嗜好', scoring: [{ axis: 'origin', direction: -1, weight: 1.0 }] },
+  { id: 'lq-05', text: '初見でも入りやすい話題が多い配信を見たい。', group: 'P/L：公共性嗜好', scoring: [{ axis: 'publicity', direction: 1, weight: 1.0 }] },
+  { id: 'lq-06', text: '今日あったことなどを言い合う配信が好きだ。', group: 'P/L：公共性嗜好', scoring: [{ axis: 'publicity', direction: 1, weight: 1.0 }] },
+  { id: 'lq-07', text: '内輪に寄った話題が好きだ。', group: 'P/L：公共性嗜好', scoring: [{ axis: 'publicity', direction: -1, weight: 1.0 }] },
+  { id: 'lq-08', text: '配信者と自分や他のリスナーの掛け合いを楽しんでいる。', group: 'P/L：公共性嗜好', scoring: [{ axis: 'publicity', direction: -1, weight: 1.0 }] },
+  { id: 'lq-09', text: 'トークテーマがはっきりしている雑談が好きだ。', group: 'T/F：テーマ性嗜好', scoring: [{ axis: 'theme', direction: 1, weight: 1.0 }] },
+  { id: 'lq-10', text: 'オチが気になるから脱線しないでほしい。', group: 'T/F：テーマ性嗜好', scoring: [{ axis: 'theme', direction: 1, weight: 1.0 }] },
+  { id: 'lq-11', text: '無軌道なその場のノリの雑談が好きだ。', group: 'T/F：テーマ性嗜好', scoring: [{ axis: 'theme', direction: -1, weight: 1.0 }] },
+  { id: 'lq-12', text: '脱線しっぱなしでも、面白ければそれでよい。', group: 'T/F：テーマ性嗜好', scoring: [{ axis: 'theme', direction: -1, weight: 1.0 }] },
+  { id: 'lq-13', text: 'アーカイブでも推しの雑談の面白さは変わらないと思う。', group: 'C/U：視聴価値', scoring: [{ axis: 'body', direction: 1, weight: 1.0 }] },
+  { id: 'lq-14', text: 'アーカイブで見返しても楽しめる雑談に価値を感じる。', group: 'C/U：視聴価値', scoring: [{ axis: 'body', direction: 1, weight: 1.0 }] },
+  { id: 'lq-15', text: '雑談だけより、企画、耐久、歌、ゲームなどと組み合わさっている配信が好きだ。', group: 'C/U：視聴価値', scoring: [{ axis: 'body', direction: -1, weight: 1.0 }] },
+  { id: 'lq-16', text: 'コメントをするために見に行っている。', group: 'C/U：視聴価値', scoring: [{ axis: 'body', direction: -1, weight: 1.0 }] },
+  { id: 'lq-17', text: '配信者の話をじっくり深掘りする、語り合うような雑談が好きだ。', group: '複合設問', scoring: [{ axis: 'origin', direction: 1, weight: 0.75 }, { axis: 'theme', direction: 1, weight: 0.75 }] },
+  { id: 'lq-18', text: 'ちゃんと話にオチをつけてほしいと思うことがある。', group: '複合設問', scoring: [{ axis: 'origin', direction: -1, weight: 0.75 }, { axis: 'theme', direction: 1, weight: 0.75 }] },
+  { id: 'lq-19', text: '自分やほかのリスナーの話題が出てきても気にならない。', group: '複合設問', scoring: [{ axis: 'origin', direction: 1, weight: 0.75 }, { axis: 'publicity', direction: -1, weight: 0.75 }] },
+  { id: 'lq-20', text: '初見さん向けに話題を変えたと察知して、乗ったことがある。', group: '複合設問', scoring: [{ axis: 'origin', direction: -1, weight: 0.75 }, { axis: 'publicity', direction: 1, weight: 0.75 }] },
+  { id: 'lq-21', text: '誰でも入っていける話題を振ってくれるとありがたい。', group: '複合設問', scoring: [{ axis: 'publicity', direction: 1, weight: 0.75 }, { axis: 'body', direction: 1, weight: 0.75 }] },
+  { id: 'lq-22', text: 'そのチャンネルならではのリスナーとの掛け合いを、リアルタイムで楽しみたい。', group: '複合設問', scoring: [{ axis: 'publicity', direction: -1, weight: 0.75 }, { axis: 'body', direction: -1, weight: 0.75 }] },
+  { id: 'lq-23', text: '予想外の方向へ話題が転がっても、雑談として面白ければ楽しめる。', group: '複合設問', scoring: [{ axis: 'theme', direction: -1, weight: 0.75 }, { axis: 'body', direction: 1, weight: 0.75 }] },
+  { id: 'lq-24', text: 'リアタイでコメントをすることに価値を感じている。', group: '複合設問', scoring: [{ axis: 'theme', direction: -1, weight: 0.75 }, { axis: 'body', direction: -1, weight: 0.75 }] }
 ];
 
-function withQuestions(axes, questionGroups) {
-  return axes.map((axis, index) => ({ ...axis, questions: questionGroups[index] }));
-}
 
 const broadcasterTypeDescriptions = {
   SPTC: ['公共テーマ語り型', '配信者が、誰でも分かりやすいテーマを提示し、それ自体を雑談コンテンツとして語る型。初見にも入りやすく、アーカイブ価値も高い。'],
@@ -110,7 +127,7 @@ const listenerTypeDescriptions = {
 
 const modes = {
   broadcaster: { label: 'あなたは配信者として回答中', shortLabel: '配信者', axes: broadcasterAxes, types: broadcasterTypeDescriptions, notice: 'この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。同じ配信内でも時間帯や話題によってタイプは変化します。' },
-  listener: { label: 'あなたはリスナーとして回答中', shortLabel: 'リスナー', axes: withQuestions(listenerAxes, listenerQuestions), types: listenerTypeDescriptions, notice: 'この診断はリスナーの優劣を示すものではなく、どのような雑談に視聴価値や居心地を感じやすいかを整理するものです。実際の好みは配信者本人への関心や、その日の気分によっても変わります。' }
+  listener: { label: 'あなたはリスナーとして回答中', shortLabel: 'リスナー', axes: listenerAxes, types: listenerTypeDescriptions, notice: 'この診断はリスナーの優劣を示すものではなく、どのような雑談に視聴価値や居心地を感じやすいかを整理するものです。実際の好みは配信者本人への関心や、その日の気分によっても変わります。' }
 };
 
 const startScreen = document.querySelector('#start-screen');
@@ -135,39 +152,32 @@ function formatSigned(score) { return `${score >= 0 ? '+' : ''}${formatScore(sco
 function isBroadcasterMode() { return currentMode === 'broadcaster'; }
 
 function renderQuestions() {
-  form.innerHTML = isBroadcasterMode() ? renderBroadcasterQuestions() : getAxes().map(axis => `
-    <section class="card axis" aria-labelledby="${axis.id}-title">
-      <div class="axis-header"><div><h2 id="${axis.id}-title">${axis.title}</h2><p>${axis.leftName} / ${axis.rightName}</p></div><p>${axis.note}</p></div>
-      ${axis.questions.map((question, index) => renderQuestion(axis, question, index)).join('')}
-    </section>`).join('');
+  form.innerHTML = renderAgreementQuestions(isBroadcasterMode() ? broadcasterQuestions : listenerQuestions, modes[currentMode].shortLabel);
 }
-function renderBroadcasterQuestions() {
-  return `<section class="card axis" aria-labelledby="broadcaster-questions-title">
-    <div class="axis-header"><div><h2 id="broadcaster-questions-title">配信者向け設問</h2><p>6段階回答</p></div><p>単文設問</p></div>
-    ${broadcasterQuestions.map(renderBroadcasterQuestion).join('')}
+function renderAgreementQuestions(questions, titlePrefix) {
+  return `<section class="card axis" aria-labelledby="agreement-questions-title">
+    <div class="axis-header"><div><h2 id="agreement-questions-title">${titlePrefix}向け設問</h2><p>6段階回答</p></div><p>単文設問</p></div>
+    ${questions.map(renderAgreementQuestion).join('')}
   </section>`;
 }
-function renderBroadcasterQuestion(question, index) {
+function renderAgreementQuestion(question, index) {
   return `<div class="question"><p class="question-title">${index + 1}. ${question.text}</p><p class="question-group">${question.group}</p><div class="scale agreement-scale" role="radiogroup" aria-label="${index + 1}問目">${Object.entries(AGREEMENT_LABELS).map(([value, label]) => `<label><input type="radio" name="${question.id}" value="${value}"><span>${value}</span><small>${label}</small></label>`).join('')}</div></div>`;
 }
-function renderQuestion(axis, question, index) {
-  const name = `${axis.id}-${index}`;
-  return `<div class="question"><p class="question-title">${index + 1}. どちらに近いですか？</p><div class="pair"><span>${question[0]}</span><span>↔</span><span>${question[1]}</span></div><div class="scale" role="radiogroup" aria-label="${axis.title} ${index + 1}問目">${[1,2,3,4,5,6,7].map(value => `<label><input type="radio" name="${name}" value="${value}"><span>${value}</span></label>`).join('')}</div></div>`;
+function getCurrentQuestions() {
+  return isBroadcasterMode() ? broadcasterQuestions : listenerQuestions;
+}
+function getAgreementAnswersFromForm(questions = getCurrentQuestions()) {
+  return Object.fromEntries(questions.map(question => [question.id, form.querySelector(`input[name="${question.id}"]:checked`)?.value ?? null]));
 }
 function getAnswers() {
-  if (isBroadcasterMode()) return broadcasterQuestions.map(question => form.querySelector(`input[name="${question.id}"]:checked`)?.value ?? null);
-  return getAxes().flatMap(axis => axis.questions.map((_, index) => form.querySelector(`input[name="${axis.id}-${index}"]:checked`)?.value ?? null));
+  return Object.values(getAgreementAnswersFromForm());
 }
 function calculateAxisScores() {
-  if (isBroadcasterMode()) return calculateBroadcasterAxisScores();
-  return getAxes().map(axis => {
-    const score = axis.questions.reduce((sum, _, index) => sum + SCORE_MAP[form.querySelector(`input[name="${axis.id}-${index}"]:checked`).value], 0);
-    return { axis, score, maxScore: axis.questions.length * 3, symbol: score >= 0 ? axis.left : axis.right };
-  });
+  return calculateScoredQuestionAxisScores(getCurrentQuestions(), getAgreementAnswersFromForm(), getAxes());
 }
-function calculateBroadcasterAxisScores(answers = getBroadcasterAnswersFromForm()) {
-  const scoresByAxis = Object.fromEntries(broadcasterAxes.map(axis => [axis.id, { axis, score: 0, maxScore: 0 }]));
-  broadcasterQuestions.forEach(question => {
+function calculateScoredQuestionAxisScores(questions, answers, axes) {
+  const scoresByAxis = Object.fromEntries(axes.map(axis => [axis.id, { axis, score: 0, maxScore: 0 }]));
+  questions.forEach(question => {
     const answer = answers[question.id];
     if (!answer) return;
     const answerScore = AGREEMENT_SCORE_MAP[answer];
@@ -176,14 +186,17 @@ function calculateBroadcasterAxisScores(answers = getBroadcasterAnswersFromForm(
       scoresByAxis[axis].maxScore += 3 * weight;
     });
   });
-  return broadcasterAxes.map(axis => {
+  return axes.map(axis => {
     const item = scoresByAxis[axis.id];
     const direction = AXIS_DIRECTIONS[axis.id];
     return { ...item, symbol: item.score >= 0 ? direction.positive : direction.negative };
   });
 }
-function getBroadcasterAnswersFromForm() {
-  return Object.fromEntries(broadcasterQuestions.map(question => [question.id, form.querySelector(`input[name="${question.id}"]:checked`)?.value ?? null]));
+function calculateBroadcasterAxisScores(answers = getAgreementAnswersFromForm(broadcasterQuestions)) {
+  return calculateScoredQuestionAxisScores(broadcasterQuestions, answers, broadcasterAxes);
+}
+function calculateListenerAxisScores(answers = getAgreementAnswersFromForm(listenerQuestions)) {
+  return calculateScoredQuestionAxisScores(listenerQuestions, answers, listenerAxes);
 }
 function scoreLabel(score, left, right, maxScore = 15) {
   const ratio = maxScore ? score / maxScore : 0;
@@ -296,13 +309,8 @@ function startDiagnosis(mode) {
   if (!modes[mode]) { messageEl.textContent = '配信者 / リスナーを選択してください。'; return; }
   currentMode = mode;
   modeLabel.textContent = modes[currentMode].label;
-  if (isBroadcasterMode()) {
-    diagnosisDescription.textContent = '各設問について、どの程度そう思うかを6段階で選んでください。';
-    scaleHelp.innerHTML = Object.entries(AGREEMENT_LABELS).map(([value, label]) => `<span>${value}：${label}</span>`).join('');
-  } else {
-    diagnosisDescription.textContent = '各設問について、左右どちらに近いかを7段階で選んでください。4は中立です。';
-    scaleHelp.innerHTML = '<span>1 左に強く近い</span><span>2 左に近い</span><span>3 やや左</span><span>4 中立</span><span>5 やや右</span><span>6 右に近い</span><span>7 右に強く近い</span>';
-  }
+  diagnosisDescription.textContent = isBroadcasterMode() ? '各設問について、どの程度そう思うかを6段階で選んでください。' : '各設問について、あなたにどの程度当てはまるかを6段階で選んでください。';
+  scaleHelp.innerHTML = Object.entries(AGREEMENT_LABELS).map(([value, label]) => `<span>${value}：${label}</span>`).join('');
   renderQuestions(); messageEl.textContent = `${modes[currentMode].shortLabel}向けの設問に切り替えました。`; startScreen.hidden = true; diagnosisScreen.hidden = false; resultEl.hidden = true; diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -311,8 +319,14 @@ nicknameInput.addEventListener('keydown', event => { if (event.key === 'Enter') 
 document.querySelector('#show-result').addEventListener('click', showResult);
 document.querySelector('#reset-answers').addEventListener('click', resetAnswers);
 
+function buildTestAnswers(questions, value) {
+  return Object.fromEntries(questions.map(question => [question.id, String(value)]));
+}
 function buildBroadcasterTestAnswers(value) {
-  return Object.fromEntries(broadcasterQuestions.map(question => [question.id, String(value)]));
+  return buildTestAnswers(broadcasterQuestions, value);
+}
+function buildListenerTestAnswers(value) {
+  return buildTestAnswers(listenerQuestions, value);
 }
 function calculateTypeFromScoreItems(scores) {
   return scores.map(item => item.symbol).join('');
@@ -323,14 +337,19 @@ window.diagnosisTestApi = {
   AGREEMENT_SCORE_MAP,
   AXIS_DIRECTIONS,
   broadcasterQuestions,
+  listenerQuestions,
   broadcasterQuestionCount: () => broadcasterQuestions.length,
+  listenerQuestionCount: () => listenerQuestions.length,
   modes,
   countViewingTendency,
   buildResultPayload,
   setCurrentMode: mode => { currentMode = mode; },
   buildBroadcasterTestAnswers,
   calculateBroadcasterAxisScores,
+  calculateListenerAxisScores,
+  buildListenerTestAnswers,
   calculateBroadcasterType: answers => calculateTypeFromScoreItems(calculateBroadcasterAxisScores(answers)),
+  calculateListenerType: answers => calculateTypeFromScoreItems(calculateListenerAxisScores(answers)),
   calculateTypeFromScores: scores => scores.map((score, index) => score >= 0 ? SYMBOLS[index][0] : SYMBOLS[index][1]).join(''),
   scoreLabel,
   compatibility,

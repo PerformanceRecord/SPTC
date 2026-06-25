@@ -85,14 +85,14 @@ const form = document.querySelector('#checksheet');
 const resultEl = document.querySelector('#result');
 const messageEl = document.querySelector('#validation-message');
 const modeLabel = document.querySelector('#mode-label');
-let currentMode = 'broadcaster';
+let currentMode = '';
 let latestListenerCode = '';
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 function getNickname() { return nicknameInput.value.trim(); }
-function getAxes() { return modes[currentMode].axes; }
+function getAxes() { return currentMode ? modes[currentMode].axes : []; }
 function formatSigned(score) { return `${score >= 0 ? '+' : ''}${score}`; }
 
 function renderQuestions() {
@@ -200,11 +200,12 @@ function resetAnswers() {
 }
 function startDiagnosis(mode) {
   if (!getNickname()) { messageEl.textContent = 'ニックネームを入力してください。'; nicknameInput.focus(); return; }
+  if (!modes[mode]) { messageEl.textContent = '配信者 / リスナーを選択してください。'; return; }
   currentMode = mode; modeLabel.textContent = modes[currentMode].label; renderQuestions(); messageEl.textContent = `${modes[currentMode].shortLabel}向けの設問に切り替えました。`; startScreen.hidden = true; diagnosisScreen.hidden = false; resultEl.hidden = true; diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 document.querySelectorAll('.start-diagnosis').forEach(button => button.addEventListener('click', () => startDiagnosis(button.dataset.mode)));
-nicknameInput.addEventListener('keydown', event => { if (event.key === 'Enter') startDiagnosis(currentMode); });
+nicknameInput.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); messageEl.textContent = '配信者 / リスナーを選択してください。'; } });
 form.addEventListener('change', () => { if (getAnswers().every(answer => answer !== null)) showResult(); });
 document.querySelector('#show-result').addEventListener('click', showResult);
 document.querySelector('#reset-answers').addEventListener('click', resetAnswers);

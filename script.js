@@ -1,4 +1,4 @@
-const SCORE_MAP = { 1: 3, 2: 2, 3: 1, 4: 0, 5: -1, 6: -2, 7: -3 };
+const SCORE_MAP = { 1: 3, 2: 2, 3: 1, 4: -1, 5: -2, 6: -3 };
 const RESULT_ENDPOINT = ''; // Google Apps ScriptのWebアプリURLを入れてください。
 
 const axes = [
@@ -87,9 +87,27 @@ const typeDefinitions = {
   RLFU: ['完全リアタイ場つなぎ型', '別目的の配信中に、常連コメントやローカルな反応を拾いながら、その場を維持する型。リアルタイム性が最も強く、アーカイブ視聴価値は低くなりやすい。']
 };
 
+const startScreen = document.querySelector('#start-screen');
+const diagnosisScreen = document.querySelector('#diagnosis-screen');
+const nicknameInput = document.querySelector('#nickname');
+const startButton = document.querySelector('#start-diagnosis');
 const form = document.querySelector('#checksheet');
 const resultEl = document.querySelector('#result');
 const messageEl = document.querySelector('#validation-message');
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[char]));
+}
+
+function getNickname() {
+  return nicknameInput.value.trim();
+}
 
 function renderQuestions() {
   form.innerHTML = axes.map(axis => `
@@ -110,7 +128,7 @@ function renderQuestion(axis, question, index) {
       <p class="question-title">${index + 1}. どちらに近いですか？</p>
       <div class="pair"><span>${question[0]}</span><span>↔</span><span>${question[1]}</span></div>
       <div class="scale" role="radiogroup" aria-label="${axis.title} ${index + 1}問目">
-        ${[1, 2, 3, 4, 5, 6, 7].map(value => `
+        ${[1, 2, 3, 4, 5, 6].map(value => `
           <label><input type="radio" name="${name}" value="${value}"><span>${value}</span></label>
         `).join('')}
       </div>
@@ -156,15 +174,16 @@ function archiveComment(archiveCount) {
   return 'この雑談は、リアルタイムの空気や参加感が強い型です。';
 }
 
-function buildResultText(scores, code, typeName, typeDescription, archiveCount, realtimeCount, confidence) {
+function buildResultText(nickname, scores, code, typeName, typeDescription, archiveCount, realtimeCount, confidence) {
   const scoreLines = scores.map(({ axis, score }) => `${axis.title.replace(/^[A-D]\. /, '')}：${score >= 0 ? '+' : ''}${score} / ${scoreLabel(score, axis.left, axis.right)}`);
-  return [`${code}型：${typeName}`, typeDescription, '', ...scoreLines, '', `アーカイブ向き：${archiveCount} / 4`, `リアタイ向き：${realtimeCount} / 4`, `信頼度：${confidence} / 60（${confidenceText(confidence)}）`].join('\n');
+  return [`${nickname}さんの診断結果`, `${code}型：${typeName}`, typeDescription, '', ...scoreLines, '', `アーカイブ向き：${archiveCount} / 4`, `リアタイ向き：${realtimeCount} / 4`, `信頼度：${confidence} / 60（${confidenceText(confidence)}）`].join('\n');
 }
 
 
-function buildResultPayload(scores, code, typeName, archiveCount, realtimeCount, confidence) {
+function buildResultPayload(nickname, scores, code, typeName, archiveCount, realtimeCount, confidence) {
   const payload = {
     submittedAt: new Date().toISOString(),
+    nickname,
     code,
     typeName,
     archiveCount,
@@ -200,6 +219,16 @@ async function sendResultToSheet(payload) {
 }
 
 function showResult() {
+  const nickname = getNickname();
+  if (!nickname) {
+    messageEl.textContent = 'ニックネームを入力してください。';
+    startScreen.hidden = false;
+    diagnosisScreen.hidden = true;
+    resultEl.hidden = true;
+    nicknameInput.focus();
+    return;
+  }
+
   const answers = getAnswers();
   const unanswered = answers.filter(answer => answer === null).length;
   if (unanswered > 0) {
@@ -214,14 +243,19 @@ function showResult() {
   const archiveCount = scores.filter(item => ['S', 'P', 'T', 'C'].includes(item.symbol)).length;
   const realtimeCount = 4 - archiveCount;
   const confidence = scores.reduce((sum, item) => sum + Math.abs(item.score), 0);
-  const resultText = buildResultText(scores, code, typeName, typeDescription, archiveCount, realtimeCount, confidence);
+  const resultText = buildResultText(nickname, scores, code, typeName, typeDescription, archiveCount, realtimeCount, confidence);
+  const tweetText = `${nickname}さんの診断結果は「${code}型：${typeName}」でした！\n配信雑談16タイプ分類チェックシート`;
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
 
-  const resultPayload = buildResultPayload(scores, code, typeName, archiveCount, realtimeCount, confidence);
+  const resultPayload = buildResultPayload(nickname, scores, code, typeName, archiveCount, realtimeCount, confidence);
 
   messageEl.textContent = '';
+  startScreen.hidden = true;
+  diagnosisScreen.hidden = true;
   resultEl.hidden = false;
   resultEl.innerHTML = `
     <h2>判定結果</h2>
+    <p class="result-nickname">${escapeHtml(nickname)}さんの結果</p>
     <div class="type-code">${code}型</div>
     <h3>${typeName}</h3>
     <p>${typeDescription}</p>
@@ -237,24 +271,51 @@ function showResult() {
     <h3>信頼度</h3>
     <p><strong>${confidence} / 60</strong>：${confidenceText(confidence)}</p>
     <p class="notice">この分類は配信者の能力評価ではなく、雑談の構造を整理するためのものです。同じ配信内でも時間帯や話題によってタイプは変化します。</p>
-    <button type="button" id="copy-result">結果をコピー</button>
+    <div class="result-actions">
+      <a class="tweet-button" href="${tweetUrl}" target="_blank" rel="noopener noreferrer">結果をツイート</a>
+      <button type="button" id="copy-result">結果をコピー</button>
+      <button type="button" id="restart-diagnosis" class="secondary">もう一度診断する</button>
+    </div>
   `;
   document.querySelector('#copy-result').addEventListener('click', async () => {
     await navigator.clipboard.writeText(resultText);
     messageEl.textContent = '結果をコピーしました。';
   });
+  document.querySelector('#restart-diagnosis').addEventListener('click', resetAnswers);
   sendResultToSheet(resultPayload);
   resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function resetAnswers() {
   form.reset();
+  startScreen.hidden = false;
+  diagnosisScreen.hidden = true;
   resultEl.hidden = true;
   resultEl.innerHTML = '';
   messageEl.textContent = '回答をリセットしました。';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function startDiagnosis() {
+  if (!getNickname()) {
+    messageEl.textContent = 'ニックネームを入力してください。';
+    nicknameInput.focus();
+    return;
+  }
+
+  messageEl.textContent = '';
+  startScreen.hidden = true;
+  diagnosisScreen.hidden = false;
+  diagnosisScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 renderQuestions();
+startButton.addEventListener('click', startDiagnosis);
+nicknameInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter') startDiagnosis();
+});
+form.addEventListener('change', () => {
+  if (getAnswers().every(answer => answer !== null)) showResult();
+});
 document.querySelector('#show-result').addEventListener('click', showResult);
 document.querySelector('#reset-answers').addEventListener('click', resetAnswers);

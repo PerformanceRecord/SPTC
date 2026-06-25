@@ -9,6 +9,7 @@
   --accent-dark: #75411f;
   --soft: #f1e3d5;
   --shadow: 0 16px 36px rgba(69, 45, 28, 0.12);
+  --x: #111;
 }
 
 * { box-sizing: border-box; }
@@ -79,7 +80,7 @@ h2, h3 { line-height: 1.35; }
 
 .scale {
   display: grid;
-  grid-template-columns: repeat(7, minmax(36px, 1fr));
+  grid-template-columns: repeat(6, minmax(40px, 1fr));
   gap: 8px;
   margin-top: 14px;
 }
@@ -102,7 +103,7 @@ h2, h3 { line-height: 1.35; }
 
 .scale-help, .score-grid, .tendency {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 .scale-help span, .pill {
@@ -114,18 +115,35 @@ h2, h3 { line-height: 1.35; }
   text-align: center;
 }
 
-button {
+button, .tweet-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
   border: 0;
   border-radius: 999px;
   padding: 12px 20px;
   background: var(--accent);
   color: #fff;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
 }
-button:hover { background: var(--accent-dark); }
+button:hover, .tweet-button:hover { background: var(--accent-dark); }
+.tweet-button { background: var(--x); }
 button.secondary { background: #5f5751; }
 .message { margin-bottom: 0; color: var(--accent-dark); font-weight: 700; }
+.nickname-label { display: block; margin: 18px 0 6px; font-weight: 700; }
+input[type="text"] {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font: inherit;
+}
+#start-diagnosis { width: 100%; margin-top: 18px; }
+.result-nickname { color: var(--muted); font-weight: 700; }
+.result-actions { display: grid; gap: 10px; margin-top: 18px; }
 
 .result h2 { margin-top: 0; }
 .type-code { font-size: clamp(2rem, 8vw, 4.5rem); line-height: 1; color: var(--accent); }
@@ -136,6 +154,8 @@ button.secondary { background: #5f5751; }
   .card { padding: 18px; border-radius: 16px; }
   .axis-header, .pair { display: block; }
   .pair span { display: block; margin: 6px 0; }
-  .scale { gap: 6px; }
-  .scale label { min-height: 40px; }
+  .hero { padding: 36px 0 24px; }
+  .scale { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .scale label { min-height: 44px; }
+  .actions button { width: 100%; margin: 4px 0; }
 }

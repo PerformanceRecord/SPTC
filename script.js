@@ -19,9 +19,9 @@ const broadcasterQuestions = [
 
 const listenerAxes = [
   { id: 'origin', title: 'A. 起点嗜好：S / R', left: 'S', right: 'R', leftName: 'Statement嗜好', rightName: 'Response嗜好', note: '左：配信者の語り / 右：コメント起点', comments: { left: '配信者が話題を提示し、それに反応する雑談を好みやすいです。', right: 'コメントや質問を起点に話が広がる雑談を好みやすいです。', neutral: '配信者の語りとコメント起点のどちらにも寄りすぎない中間傾向です。' } },
-  { id: 'topic', title: 'B. 話題嗜好：P / L', left: 'P', right: 'L', leftName: 'Public嗜好', rightName: 'Local嗜好', note: '左：初見にも共有しやすい / 右：固有で濃い話題', comments: { left: '初見でも共有しやすい、公共性の高い話題を好みやすいです。', right: '配信者やコミュニティ固有の濃い話題を好みやすいです。', neutral: '公共的な話題と固有の濃い話題を同じくらい楽しめる中間傾向です。' } },
-  { id: 'structure', title: 'C. 構造嗜好：T / F', left: 'T', right: 'F', leftName: 'Theme嗜好', rightName: 'Free嗜好', note: '左：テーマあり / 右：偶発的な流れ', comments: { left: 'テーマやお題があり、見通しのよい雑談を好みやすいです。', right: '無軌道で、偶発性やライブ感のある雑談を好みやすいです。', neutral: 'テーマの分かりやすさと偶発的な流れのどちらも楽しめる中間傾向です。' } },
-  { id: 'value', title: 'D. 視聴価値：C / U', left: 'C', right: 'U', leftName: 'Content嗜好', rightName: 'Utility嗜好', note: '左：雑談そのもの / 右：参加・応援・場づくり', comments: { left: '雑談そのものをコンテンツとして楽しみやすいです。', right: '雑談を通じた参加、応援、場づくり、達成感に価値を感じやすいです。', neutral: '雑談そのものの面白さと、参加・応援の価値を同じくらい見ています。' } }
+  { id: 'publicity', title: 'B. 話題嗜好：P / L', left: 'P', right: 'L', leftName: 'Public嗜好', rightName: 'Local嗜好', note: '左：初見にも共有しやすい / 右：固有で濃い話題', comments: { left: '初見でも共有しやすい、公共性の高い話題を好みやすいです。', right: '配信者やコミュニティ固有の濃い話題を好みやすいです。', neutral: '公共的な話題と固有の濃い話題を同じくらい楽しめる中間傾向です。' } },
+  { id: 'theme', title: 'C. 構造嗜好：T / F', left: 'T', right: 'F', leftName: 'Theme嗜好', rightName: 'Free嗜好', note: '左：テーマあり / 右：偶発的な流れ', comments: { left: 'テーマやお題があり、見通しのよい雑談を好みやすいです。', right: '無軌道で、偶発性やライブ感のある雑談を好みやすいです。', neutral: 'テーマの分かりやすさと偶発的な流れのどちらも楽しめる中間傾向です。' } },
+  { id: 'body', title: 'D. 視聴価値：C / U', left: 'C', right: 'U', leftName: 'Content嗜好', rightName: 'Utility嗜好', note: '左：雑談そのもの / 右：参加・応援・場づくり', comments: { left: '雑談そのものをコンテンツとして楽しみやすいです。', right: '雑談を通じた参加、応援、場づくり、達成感に価値を感じやすいです。', neutral: '雑談そのものの面白さと、参加・応援の価値を同じくらい見ています。' } }
 ];
 
 const listenerQuestions = [
@@ -130,12 +130,24 @@ function confidenceText(total) {
 }
 function typeDistance(a, b) { return [...a].filter((char, index) => char !== b[index]).length; }
 function relatedTypes(code, distance) { return Object.keys(listenerTypeDescriptions).filter(type => typeDistance(code, type) === distance); }
-function buildResultText(nickname, scores, code, typeName, typeDescription, confidence) {
+function viewingTendencyText(archiveCount, realtimeCount) {
+  if (archiveCount >= 3) return 'この診断結果は、比較的アーカイブ視聴にも残りやすい傾向です。';
+  if (realtimeCount >= 3) return 'この診断結果は、リアルタイム参加やその場の空気に価値が出やすい傾向です。';
+  return 'アーカイブ視聴とリアルタイム参加の要素が半々に出ています。';
+}
+function countViewingTendency(code) {
+  const archiveSymbols = ['S', 'P', 'T', 'C'];
+  const archiveCount = [...code].filter((char, index) => char === archiveSymbols[index]).length;
+  return { archiveCount, realtimeCount: 4 - archiveCount };
+}
+function buildResultText(nickname, scores, code, typeName, typeDescription, confidence, tendency) {
+  const modeName = modes[currentMode].shortLabel;
   const scoreLines = scores.map(({ axis, score }) => `${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right)}`);
-  return [`${nickname}さんの診断結果`, `${code}型：${typeName}`, typeDescription, '', ...scoreLines, '', `信頼度：${confidence} / 60（${confidenceText(confidence)}）`].join('\n');
+  return [`${nickname}さんの診断結果`, `診断モード：${modeName}`, `${code}型：${typeName}`, typeDescription, '', `アーカイブ向き：${tendency.archiveCount} / 4`, `リアタイ向き：${tendency.realtimeCount} / 4`, viewingTendencyText(tendency.archiveCount, tendency.realtimeCount), '', ...scoreLines, '', `信頼度：${confidence} / 60（${confidenceText(confidence)}）`].join('\n');
 }
 function buildResultPayload(nickname, scores, code, typeName, confidence) {
-  const payload = { submittedAt: new Date().toISOString(), mode: currentMode, nickname, code, typeName, confidence };
+  const tendency = countViewingTendency(code);
+  const payload = { submittedAt: new Date().toISOString(), mode: currentMode, nickname, code, typeName, archiveCount: tendency.archiveCount, realtimeCount: tendency.realtimeCount, confidence };
   scores.forEach(({ axis, score }) => { payload[`${axis.id}Score`] = score; payload[`${axis.id}Symbol`] = score >= 0 ? axis.left : axis.right; });
   return payload;
 }
@@ -157,8 +169,14 @@ function compatibility(listenerCode, broadcasterCode) {
   return { score, rating, matches, mismatches };
 }
 function compatibilityDetail(listenerCode, broadcasterCode, result) {
-  if (!result.mismatches.length) return '4軸すべてが一致しているため、居心地や参加感にズレが出にくい組み合わせです。';
-  return `一致：${result.matches.join(' / ') || 'なし'}。不一致：${result.mismatches.join(' / ')}。不一致の軸では、求める雑談の起点・話題・流れ・価値が変わるため、参加の手応えに差が出る可能性があります。`;
+  if (!result.mismatches.length) return ['4軸すべてが一致しているため、居心地や参加感にズレが出にくい組み合わせです。'];
+  const mismatchDescriptions = [
+    '話題の始まり方にズレがあります。片方は配信者の語りを好み、もう片方はコメント起点の展開を好みます。',
+    '話題の広さにズレがあります。片方は初見にも開かれた話題を好み、もう片方は配信者やコミュニティ固有の濃い話題を好みます。',
+    '話題の構造にズレがあります。片方はテーマのある見通しのよい雑談を好み、もう片方はその場の流れや偶発性を好みます。',
+    '雑談の価値にズレがあります。片方は雑談そのものをコンテンツとして楽しみ、もう片方は参加・応援・達成への貢献に価値を感じます。'
+  ];
+  return [...listenerCode].flatMap((char, index) => char === broadcasterCode[index] ? [] : mismatchDescriptions[index]);
 }
 function renderCompatibilityTool() {
   const options = Object.entries(broadcasterTypeDescriptions).map(([code, [name]]) => `<option value="${code}">${code}：${name}</option>`).join('');
@@ -169,7 +187,7 @@ function updateCompatibility() {
   const result = compatibility(latestListenerCode, broadcasterCode);
   const el = document.querySelector('#compatibility-result');
   el.hidden = false;
-  el.innerHTML = `<strong>${result.score}点：${result.rating}</strong><ul><li>一致している軸：${result.matches.join(' / ') || 'なし'}</li><li>ズレている軸：${result.mismatches.join(' / ') || 'なし'}</li><li>${compatibilityDetail(latestListenerCode, broadcasterCode, result)}</li><li>ヒント：一致している軸を楽しみつつ、ズレる軸は「今日はそういう配信」と受け取ると見やすくなります。</li></ul>`;
+  el.innerHTML = `<strong>${result.score}点：${result.rating}</strong><ul><li>一致している軸：${result.matches.join(' / ') || 'なし'}</li><li>ズレている軸：${result.mismatches.join(' / ') || 'なし'}</li>${compatibilityDetail(latestListenerCode, broadcasterCode, result).map(detail => `<li>${detail}</li>`).join('')}<li>ヒント：一致している軸を楽しみつつ、ズレる軸は「今日はそういう配信」と受け取ると見やすくなります。</li></ul>`;
 }
 function showResult() {
   const nickname = getNickname();
@@ -181,14 +199,15 @@ function showResult() {
   const code = scores.map(item => item.symbol).join('');
   const [typeName, typeDescription] = modes[currentMode].types[code];
   const confidence = scores.reduce((sum, item) => sum + Math.abs(item.score), 0);
-  const resultText = buildResultText(nickname, scores, code, typeName, typeDescription, confidence);
+  const tendency = countViewingTendency(code);
+  const resultText = buildResultText(nickname, scores, code, typeName, typeDescription, confidence, tendency);
   latestListenerCode = currentMode === 'listener' ? code : '';
 
   messageEl.textContent = '';
   startScreen.hidden = true;
   diagnosisScreen.hidden = true;
   resultEl.hidden = false;
-  resultEl.innerHTML = `<h2>判定結果</h2><p class="result-nickname">${escapeHtml(nickname)}さんの結果</p><div class="type-code">${code}型</div><h3>${typeName}</h3><p>${typeDescription}</p><h3>各軸スコア</h3><div class="score-grid">${scores.map(({ axis, score }) => `<div class="pill">${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right)}</div>`).join('')}</div><h3>各軸の短評</h3><ul>${scores.map(({ axis, score }) => `<li>${score === 0 ? axis.comments.neutral : score > 0 ? axis.comments.left : axis.comments.right}</li>`).join('')}</ul>${currentMode === 'listener' ? `<h3>向いている配信タイプ</h3><p><strong>${code}型</strong>、${relatedTypes(code, 1).join('型、')}型</p><h3>苦手になりやすい配信タイプ</h3><p>${[...relatedTypes(code, 3), ...relatedTypes(code, 4)].join('型、')}型</p>${renderCompatibilityTool()}` : ''}<h3>信頼度</h3><p><strong>${confidence} / 60</strong>：${confidenceText(confidence)}</p><p class="notice">${modes[currentMode].notice}</p><div class="result-actions"><button type="button" id="copy-result">結果をコピー</button><button type="button" id="restart-diagnosis" class="secondary">回答をリセット</button></div>`;
+  resultEl.innerHTML = `<h2>判定結果</h2><p class="result-nickname">${escapeHtml(nickname)}さんの結果</p><div class="type-code">${code}型</div><h3>${typeName}</h3><p>${typeDescription}</p><h3>視聴傾向</h3><p>アーカイブ向き：${tendency.archiveCount} / 4<br>リアタイ向き：${tendency.realtimeCount} / 4</p><p>${viewingTendencyText(tendency.archiveCount, tendency.realtimeCount)}</p><h3>各軸スコア</h3><div class="score-grid">${scores.map(({ axis, score }) => `<div class="pill">${axis.title.replace(/^[A-D]\. /, '')}：${formatSigned(score)} / ${scoreLabel(score, axis.left, axis.right)}</div>`).join('')}</div><h3>各軸の短評</h3><ul>${scores.map(({ axis, score }) => `<li>${score === 0 ? axis.comments.neutral : score > 0 ? axis.comments.left : axis.comments.right}</li>`).join('')}</ul>${currentMode === 'listener' ? `<h3>向いている配信タイプ</h3><p><strong>${code}型</strong>、${relatedTypes(code, 1).join('型、')}型</p><h3>苦手になりやすい配信タイプ</h3><p>${[...relatedTypes(code, 3), ...relatedTypes(code, 4)].join('型、')}型</p>${renderCompatibilityTool()}` : ''}<h3>信頼度</h3><p><strong>${confidence} / 60</strong>：${confidenceText(confidence)}</p><p class="notice">${modes[currentMode].notice}</p><div class="result-actions"><button type="button" id="copy-result">結果をコピー</button><button type="button" id="restart-diagnosis" class="secondary">回答をリセット</button></div>`;
   document.querySelector('#copy-result').addEventListener('click', async () => { await navigator.clipboard.writeText(resultText); messageEl.textContent = '結果をコピーしました。'; });
   document.querySelector('#restart-diagnosis').addEventListener('click', resetAnswers);
   document.querySelector('#check-compatibility')?.addEventListener('click', updateCompatibility);
@@ -206,8 +225,7 @@ function startDiagnosis(mode) {
 
 document.querySelectorAll('.start-diagnosis').forEach(button => button.addEventListener('click', () => startDiagnosis(button.dataset.mode)));
 nicknameInput.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); messageEl.textContent = '配信者 / リスナーを選択してください。'; } });
-form.addEventListener('change', () => { if (getAnswers().every(answer => answer !== null)) showResult(); });
 document.querySelector('#show-result').addEventListener('click', showResult);
 document.querySelector('#reset-answers').addEventListener('click', resetAnswers);
 
-window.diagnosisTestApi = { SCORE_MAP, modes, calculateTypeFromScores: scores => scores.map((score, index) => score >= 0 ? SYMBOLS[index][0] : SYMBOLS[index][1]).join(''), scoreLabel, compatibility };
+window.diagnosisTestApi = { SCORE_MAP, modes, countViewingTendency, buildResultPayload, setCurrentMode: mode => { currentMode = mode; }, calculateTypeFromScores: scores => scores.map((score, index) => score >= 0 ? SYMBOLS[index][0] : SYMBOLS[index][1]).join(''), scoreLabel, compatibility, compatibilityDetail };

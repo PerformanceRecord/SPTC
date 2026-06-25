@@ -1,7 +1,9 @@
-const SPREADSHEET_ID = '1HRxofzVdXxrx1OLb07TXC4BEb_jF0K9yRoW9V2NWylM';
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID';
 const SHEET_NAME = 'シート1';
 const HEADERS = [
   '送信日時',
+  '診断モード',
+  'ニックネーム',
   'タイプコード',
   'タイプ名',
   '起点性スコア',
@@ -18,30 +20,43 @@ const HEADERS = [
 ];
 
 function doPost(e) {
-  const payload = JSON.parse(e.postData.contents);
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
+    if (!sheet) {
+      throw new Error(`Sheet not found: ${SHEET_NAME}`);
+    }
+
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(HEADERS);
+    }
+
+    sheet.appendRow([
+      payload.submittedAt,
+      payload.mode,
+      payload.nickname,
+      payload.code,
+      payload.typeName,
+      payload.originScore,
+      payload.originSymbol,
+      payload.publicityScore,
+      payload.publicitySymbol,
+      payload.themeScore,
+      payload.themeSymbol,
+      payload.bodyScore,
+      payload.bodySymbol,
+      payload.archiveCount,
+      payload.realtimeCount,
+      payload.confidence
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: String(error) }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-
-  sheet.appendRow([
-    payload.submittedAt,
-    payload.code,
-    payload.typeName,
-    payload.originScore,
-    payload.originSymbol,
-    payload.publicityScore,
-    payload.publicitySymbol,
-    payload.themeScore,
-    payload.themeSymbol,
-    payload.bodyScore,
-    payload.bodySymbol,
-    payload.archiveCount,
-    payload.realtimeCount,
-    payload.confidence
-  ]);
-
-  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-    .setMimeType(ContentService.MimeType.JSON);
 }
